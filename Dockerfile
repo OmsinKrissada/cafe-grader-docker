@@ -24,11 +24,11 @@ RUN apt-add-repository -y ppa:rael-gc/rvm && \
 	apt install -y rvm && \
 	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# clone cafe-grader-web
-RUN git clone https://github.com/nattee/cafe-grader-web.git /cafe-grader/web
+# clone cafe-grader-web (will get cached)
+# RUN git clone https://github.com/nattee/cafe-grader-web.git /cafe-grader/web
 
 # fallback if the latest version of cafe-grader-web is not compatible
-# COPY cafe-grader-web /cafe-grader/web
+COPY cafe-grader-web /cafe-grader/web
 
 # install Ruby version from .ruby-version file and install gems
 RUN RUBY_VERSION=$(cat /cafe-grader/web/.ruby-version | tr -d '[:space:]') && \
