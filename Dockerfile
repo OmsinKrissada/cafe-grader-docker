@@ -3,8 +3,10 @@ FROM ubuntu:plucky AS base
 # use bash as the default shell
 SHELL ["/bin/bash", "-lc"]
 
+RUN --mount=type=cache,target=/var/lib/apt/lists apt update
+
 # install required packages
-RUN apt update && apt install -y \ 
+RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y \ 
 	apache2 \
 	apache2-dev \
 	git \
@@ -16,25 +18,24 @@ RUN apt update && apt install -y \
 	postgresql-server-dev-all \
 	zip \
 	unzip && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+	rm -rf /tmp/* /var/tmp/*
 
 # install RVM
-RUN apt-add-repository -y ppa:rael-gc/rvm && \
+RUN --mount=type=cache,target=/var/lib/apt/lists apt-add-repository -y ppa:rael-gc/rvm && \
 	apt update && \
 	apt install -y rvm && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+	rm -rf /tmp/* /var/tmp/*
 
-# clone cafe-grader-web (will get cached)
-# RUN git clone https://github.com/nattee/cafe-grader-web.git /cafe-grader/web
-
-# fallback if the latest version of cafe-grader-web is not compatible
-COPY cafe-grader-web /cafe-grader/web
+FROM base AS common
 
 # install Ruby version from .ruby-version file and install gems
+COPY cafe-grader-web/.ruby-version /cafe-grader/web
 RUN RUBY_VERSION=$(cat /cafe-grader/web/.ruby-version | tr -d '[:space:]') && \
 	echo "Installing Ruby ${RUBY_VERSION}..." && \
 	/bin/bash -lc "rvm install ${RUBY_VERSION}" && \
 	/bin/bash -lc "rvm use ${RUBY_VERSION}"
+
+COPY cafe-grader-web /cafe-grader/web
 
 # bundle install
 WORKDIR /cafe-grader/web
@@ -45,15 +46,17 @@ RUN cp config/application.rb.SAMPLE config/application.rb && \
 	cp config/database.yml.SAMPLE config/database.yml && \
 	cp config/worker.yml.SAMPLE config/worker.yml
 
-FROM base AS web
-
 # process application.rb to use environment variable for timezone
 RUN sed -i 's/config\.time_zone = "Asia\/Bangkok"/config.time_zone = ENV.fetch("RAILS_TIME_ZONE", "Asia\/Bangkok")/' /cafe-grader/web/config/application.rb && \
 	sed -i 's/username: grader/username: <%= ENV.fetch("MYSQL_USER", "grader_user") %>/' /cafe-grader/web/config/database.yml && \
 	sed -i 's/password: grader/password: <%= ENV.fetch("MYSQL_PASSWORD", "grader_pass") %>/' /cafe-grader/web/config/database.yml && \
 	sed -i 's/host: localhost/host: <%= ENV.fetch("SQL_DATABASE_CONTAINER_HOST", "cafe-grader-db") %>/' /cafe-grader/web/config/database.yml && \
-	sed -i 's/socket: \/var\/run\/mysqld\/mysqld\.sock/port: <%= ENV.fetch("SQL_DATABASE_PORT", "3306") %>/' /cafe-grader/web/config/database.yml && \
-	sed -i 's@| Revision: #{APP_VERSION}#{APP_VERSION_SUFFIX}@& (#{link_to "Docker", "https://github.com/folkiesss/cafe-grader-docker"})@' /cafe-grader/web/app/views/layouts/application.html.haml
+	sed -i 's/socket: \/var\/run\/mysqld\/mysqld\.sock/port: <%= ENV.fetch("SQL_DATABASE_PORT", "3306") %>/' /cafe-grader/web/config/database.yml
+
+
+FROM common AS web
+
+RUN sed -i 's@| Revision: #{APP_VERSION}#{APP_VERSION_SUFFIX}@& (#{link_to "Docker", "https://github.com/folkiesss/cafe-grader-docker"})@' /cafe-grader/web/app/views/layouts/application.html.haml
 
 # install nodejs 22.x
 RUN curl -sL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource_setup.sh && \
@@ -68,28 +71,41 @@ RUN corepack enable && \
 
 RUN rm -rf /tmp/* /var/tmp/* ~/.cache
 
-FROM base as worker
+# FROM base AS worker-prepare
 
-# process application.rb to use environment variable for timezone
-RUN sed -i 's/config\.time_zone = "Asia\/Bangkok"/config.time_zone = ENV.fetch("RAILS_TIME_ZONE", "Asia\/Bangkok")/' /cafe-grader/web/config/application.rb && \
-	sed -i 's/username: grader/username: <%= ENV.fetch("MYSQL_USER", "grader_user") %>/' /cafe-grader/web/config/database.yml && \
-	sed -i 's/password: grader/password: <%= ENV.fetch("MYSQL_PASSWORD", "grader_pass") %>/' /cafe-grader/web/config/database.yml && \
-	sed -i 's/host: localhost/host: <%= ENV.fetch("SQL_DATABASE_CONTAINER_HOST", "cafe-grader-db") %>/' /cafe-grader/web/config/database.yml && \
-	sed -i 's/socket: \/var\/run\/mysqld\/mysqld\.sock/port: <%= ENV.fetch("SQL_DATABASE_PORT", "3306") %>/' /cafe-grader/web/config/database.yml && \
-	sed -i 's|web: http://localhost|web: http://cafe-grader-web:3000|' config/worker.yml
+# # install IOI Isolate
+# RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y libcap-dev libsystemd-dev
+
+# COPY isolate /tmp/isolate
+
+# RUN cd /tmp/isolate && make isolate && make install && \
+# 	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
+
+# # install programming language compilers and runtimes
+# RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y ghc g++ openjdk-21-jdk fpc php-cli php-readline golang-go cargo python3-venv && \
+# 	rm -rf /tmp/* /var/tmp/*
+
+FROM common AS worker
+
+# COPY --from=worker-prepare /usr/local/bin /usr/local/bin
+# COPY --from=worker-prepare 
+
+RUN	sed -i 's|web: http://localhost|web: http://cafe-grader-web:3000|' config/worker.yml
 
 # return to home directory
 WORKDIR /
 
 # install IOI Isolate
-RUN apt install -y libcap-dev libsystemd-dev && \
-	git clone https://github.com/ioi/isolate.git /tmp/isolate && \
-	cd /tmp/isolate && make isolate && make install && \
-	rm -rf /tmp/* /var/tmp/* ~/.cache
+RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y libcap-dev libsystemd-dev
+
+COPY isolate /tmp/isolate
+
+RUN cd /tmp/isolate && make isolate && make install && \
+	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
 
 # install programming language compilers and runtimes
-RUN apt install -y ghc g++ openjdk-21-jdk fpc php-cli php-readline golang-go cargo python3-venv && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y ghc g++ openjdk-21-jdk fpc php-cli php-readline golang-go cargo python3-venv && \
+	rm -rf /tmp/* /var/tmp/*
 
 # set up Python virtual environment for grader
 RUN python3 -m venv /venv/grader

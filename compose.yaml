@@ -1,8 +1,9 @@
 services:
   cafe-grader-web:
     build:
-      dockerfile: web.Dockerfile
+      dockerfile: Dockerfile
       context: .
+      target: web
     image: cafe-grader-web:latest
     container_name: cafe-grader-web
     ports:
@@ -34,8 +35,9 @@ services:
 
   cafe-grader-worker:
     build:
-      dockerfile: worker.Dockerfile
+      dockerfile: Dockerfile
       context: .
+      target: worker
     image: cafe-grader-worker:latest
     container_name: cafe-grader-worker
     privileged: true  # Required for systemd and IOI Isolate
