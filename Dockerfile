@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/var/lib/apt/lists apt-add-repository -y ppa:rael-
 FROM base AS common
 
 # install Ruby version from .ruby-version file and install gems
-COPY cafe-grader-web/.ruby-version /cafe-grader/web
+COPY cafe-grader-web/.ruby-version /cafe-grader/web/.ruby-version
 RUN RUBY_VERSION=$(cat /cafe-grader/web/.ruby-version | tr -d '[:space:]') && \
 	echo "Installing Ruby ${RUBY_VERSION}..." && \
 	/bin/bash -lc "rvm install ${RUBY_VERSION}" && \
