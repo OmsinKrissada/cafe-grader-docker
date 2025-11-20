@@ -1,6 +1,6 @@
 [submodule "cafe-grader-web"]
 	path = cafe-grader-web
-	url = https://github.com/nattee/cafe-grader-web.git
+	url = https://github.com/OmsinKrissada/cafe-grader-web.git
 [submodule "isolate"]
 	path = isolate
 	url = https://github.com/ioi/isolate.git
