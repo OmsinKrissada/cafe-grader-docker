@@ -2,6 +2,14 @@
 
 A containerized version of the [CU Cafe Grader](https://github.com/nattee/cafe-grader-web) competitive programming judging system.
 
+## THIS IS A FORK. THE REST OF THIS README FILE MAY NOT BE APPLICABLE TO THIS REPOSITORY. PLEASE REFER TO https://github.com/folkiesss/cafe-grader-docker.git FOR INSTALLATION
+
+This is a fork of https://github.com/folkiesss/cafe-grader-docker.git which itself uses program from https://github.com/nattee/cafe-grader-web.
+
+<details>
+
+<summary>More of original README content</summary>
+
 ## Table of Contents
 
 - [Docker Architecture](#docker-architecture)
@@ -252,6 +260,8 @@ Both `Dockerfile`s (`*.Dockerfile`) use `git clone` to clone the latest version 
 ## Logging
 
 Please uncomment the logs volume in the [`compose.yaml`](compose.yaml) file for saving logs.
+
+</details>
 
 ## Acknowledgements
 
