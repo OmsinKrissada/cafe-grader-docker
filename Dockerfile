@@ -62,7 +62,7 @@ RUN sed -i 's@| Revision: #{APP_VERSION}#{APP_VERSION_SUFFIX}@& (#{link_to "Dock
 RUN curl -sL https://deb.nodesource.com/setup_22.x -o /tmp/nodesource_setup.sh && \
 	bash /tmp/nodesource_setup.sh && \
 	apt install -y nodejs && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /tmp/nodesource_setup.sh
+	rm -rf /tmp/* /var/tmp/* /tmp/nodesource_setup.sh
 
 # install and enable Yarn
 RUN corepack enable && \
@@ -101,7 +101,7 @@ RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y libcap-dev libsy
 COPY isolate /tmp/isolate
 
 RUN cd /tmp/isolate && make isolate && make install && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ~/.cache
+	rm -rf /tmp/* /var/tmp/* ~/.cache
 
 # install programming language compilers and runtimes
 RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y ghc g++ openjdk-21-jdk fpc php-cli php-readline golang-go cargo python3-venv && \
@@ -116,7 +116,7 @@ RUN sed -i "/when 'java'/,/when 'haskell'/ s|'-p -d /etc/alternatives'|'-p -d /e
 # add cron job to clean up isolate_submission directory
 RUN apt update && apt install -y cron && \
 	echo "0 2 * * * find /cafe-grader/judge/isolate_submission/ -maxdepth 1 -mtime +1 -exec rm -rf {} \\;" | crontab - && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+	rm -rf /tmp/* /var/tmp/*
 
 # copy systemd service files
 COPY services/*.service /etc/systemd/system/
@@ -134,7 +134,7 @@ RUN chmod +x \
 	cafe-grader/scripts/start_worker.sh
 
 # clean up apt cache and temporary files to reduce image size
-RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN rm -rf /tmp/* /var/tmp/*
 
 # set working directory and entrypoint
 WORKDIR /cafe-grader/scripts
