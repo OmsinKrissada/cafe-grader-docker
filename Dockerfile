@@ -37,6 +37,9 @@ RUN RUBY_VERSION=$(cat /cafe-grader/web/.ruby-version | tr -d '[:space:]') && \
 
 COPY cafe-grader-web /cafe-grader/web
 
+# update apt list every time the copied cafe-grader-web repo is updated
+RUN --mount=type=cache,target=/var/lib/apt/lists apt update
+
 # bundle install
 WORKDIR /cafe-grader/web
 RUN bundle
