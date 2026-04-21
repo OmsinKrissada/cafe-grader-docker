@@ -88,7 +88,8 @@ RUN	sed -i 's|web: http://localhost|web: http://cafe-grader-web:3000|' config/wo
 WORKDIR /
 
 # install IOI Isolate
-RUN --mount=type=cache,target=/var/lib/apt/lists apt install -y libcap-dev libsystemd-dev
+RUN --mount=type=cache,target=/var/lib/apt/lists apt-get update && \
+	apt install -y libcap-dev libsystemd-dev
 
 COPY isolate /tmp/isolate
 
